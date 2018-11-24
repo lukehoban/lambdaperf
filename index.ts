@@ -1,7 +1,7 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as aws from "@pulumi/aws";
-import { API } from "@pulumi/aws/apigateway/experimental/api";
 
+// Test Infrastructure
 const table = new aws.dynamodb.Table("stats", {
     attributes: [
         { name: "test", type: "S" },
@@ -12,8 +12,7 @@ const table = new aws.dynamodb.Table("stats", {
     readCapacity: 5,
     writeCapacity: 100,
 });
-
-const NUM_DATAPOINTS = 500;
+const NUM_DATAPOINTS = 100;
 async function harness(name: string, val: number, action: (newval: number) => Promise<any>) {
     if(val == NUM_DATAPOINTS) {
         return;
@@ -52,9 +51,23 @@ function sendTopicValue(val: number) {
         Message: val.toString(),
     }).promise();
 }
-const topicSubscription = topic.onEvent("onevent", (ev, ctx) => {
+const topicSubscription = topic.onEvent("ontopicevent", (ev, ctx) => {
     return harness("sns", Number(ev.Records[0].Sns.Message), sendTopicValue);
 });
+
+// Test for Queue
+const queue = new aws.sqs.Queue("my-queue", {
+    visibilityTimeoutSeconds: 180,
+});
+function sendQueueValue(val: number) {
+    return (new aws.sdk.SQS()).sendMessage({
+        QueueUrl: queue.id.get(),
+        MessageBody: val.toString(),
+    }).promise();
+}
+const queueSubscription = queue.onEvent("onqueueevent", (ev, ctx) => {
+    return harness("sqs", Number(ev.Records[0].body), sendQueueValue);
+}, { batchSize: 1});
 
 // Test for Table
 const tab = new aws.dynamodb.Table("my-table", {
@@ -118,6 +131,7 @@ const api = new aws.apigateway.x.API("api", {
         { path: "/", method: "GET", eventHandler: async (ev, ctx) => {
             await Promise.all([
                 sendTopicValue(0), 
+                sendQueueValue(0), 
                 sendBucketValue(0),
                 sendTableValue(0),
             ]);
@@ -138,7 +152,6 @@ const api = new aws.apigateway.x.API("api", {
                     series[item.test][item.val] = item.start;
                     numbers.push(Number(item.start));
                 }
-                console.log(series);
                 var arr: {text: string; values: number[]}[] = [];
                 for(const key in series) {
                     const keyMin = Math.min(...series[key]);
@@ -149,11 +162,8 @@ const api = new aws.apigateway.x.API("api", {
                         values: series[key]
                     });
                 }
-                console.log(arr);
                 const minVal = Math.min(...numbers);
                 const maxVal = Math.max(...numbers);
-                console.log(minVal);
-                console.log(maxVal);
                 return { statusCode: 200, body: renderChart(arr, minVal, maxVal), headers: { "Content-Type": "text/html" }};
             }
             return { statusCode: 500, body: "No items returned!" }
