@@ -1,0 +1,12 @@
+{
+    "name": "lambdaperf",
+    "devDependencies": {
+        "@types/node": "^10.12.9"
+    },
+    "dependencies": {
+        "@pulumi/aws": "^0.16.2",
+        "@pulumi/pulumi": "^0.16.5",
+        "@types/aws-sdk": "^2.7.0",
+        "aws-sdk": "^2.359.0"
+    }
+}
