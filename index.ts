@@ -12,7 +12,7 @@ const table = new aws.dynamodb.Table("stats", {
     readCapacity: 5,
     writeCapacity: 100,
 });
-const NUM_DATAPOINTS = 100;
+const NUM_DATAPOINTS = 500;
 async function harness(name: string, val: number, action: (newval: number) => Promise<any>) {
     if(val == NUM_DATAPOINTS) {
         return;
@@ -171,3 +171,4 @@ const api = new aws.apigateway.x.API("api", {
     ],
 })
 export const endpoint = api.url;
+export const chartEndpoint = api.url.apply(url => `${url}chart`);
