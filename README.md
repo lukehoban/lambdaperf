@@ -7,9 +7,10 @@ I was idly curious about these questions and couldn't find good data to answer t
 For each event source, we create an event handler Lambda which just writes a message back to the event source, which in turn should trigger the next event.  Each time, the message in the event is incremented, until a limit (500 in the graph below) is reached at which point the process stops.  This process is serial for each event source.  
 
 Qualitative results:
-* SQS is consistently meaningfuly faster than other event sources, with ~130ms of time elapsed between events.
+* SQS is consistently meaningfuly faster than other event sources, with ~125ms of time elapsed between events
 * SNS, S3 and DynamoDB are all suprisingly close, but consistently rank in that order in terms of latency
-* Initial startup time sees a Lambda cold-start hit, but after that we do not see anything big enough to be a Lambda cold-start hit, so in-line with expectations it appears Lambda is resusing a single instance of each handler across serial invocations.
+* There are slight hiccups perdiocially for each event source, though SQS is in general very consistent (flat) and S3 is generally rather inconsistent (wavy)
+* Initial startup time sees a Lambda cold-start hit, but after that we do not see anything big enough to be a Lambda cold-start hit so, in-line with expectations, it appears Lambda is resusing a single instance of each handler across serial invocations.
 
 ![Lambda Latency](./chart.png)
 
